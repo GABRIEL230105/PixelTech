@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const Sentry = require("@sentry/node");
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
-const leadsRouter = require("./routes/leads");
+const leadsRouter = require("./routes/Leads");
 const authRouter = require("./routes/auth");
 const otpRouter = require("./routes/otp");
 const ordersRouter = require("./routes/orders");
