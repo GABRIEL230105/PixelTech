@@ -1,0 +1,29 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.x'
+
+    - name: Instalar dependências
+      working-directory: ./backend
+      run: npm install
+
+    - name: Executar verificações ou testes
+      working-directory: ./backend
+      # Se ainda não tiver testes configurados no package.json, isto evita que a Action falhe:
+      run: npm test --if-present

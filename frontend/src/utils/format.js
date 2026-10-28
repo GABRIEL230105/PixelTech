@@ -1,0 +1,3 @@
+export function formatBRL(v) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
