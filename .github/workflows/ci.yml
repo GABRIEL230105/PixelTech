@@ -21,7 +21,7 @@ jobs:
 
     - name: Instalar dependências
       working-directory: ./backend
-      run: npm install
+      run: npm ci
 
     - name: Executar verificações ou testes
       working-directory: ./backend
