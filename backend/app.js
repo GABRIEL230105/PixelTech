@@ -1,8 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
-// Importação do Sentry (Versão 8+)
 const Sentry = require("@sentry/node");
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
@@ -15,7 +16,7 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
-// Inicialização do Sentry (Deixe o DSN vazio até criar o projeto na plataforma)
+// Inicialização do Sentry
 Sentry.init({
   dsn: "", 
   integrations: [
@@ -25,6 +26,23 @@ Sentry.init({
 });
 
 app.use(cors());
+
+// Proteção de cabeçalhos HTTP contra vulnerabilidades comuns
+app.use(helmet());
+
+// Prevenção de ataques de força bruta e DDoS (Rate Limiting)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 150, // Limite de 150 pedidos por IP a cada 15 minutos
+  message: { error: "Muitos pedidos realizados a partir deste IP. Tente novamente mais tarde." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Aplica o limite de taxa a todas as rotas que começam por /api
+app.use("/api", apiLimiter);
+
+// Parse de JSON (mantido com limite de 100kb para evitar sobrecarga de memória)
 app.use(express.json({ limit: "100kb" }));
 
 // Pra conferir rápido se o servidor está no ar e conectado ao banco
@@ -36,7 +54,6 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Rota de teste para validar a integração (pode apagar depois)
 app.get("/debug-sentry", function mainHandler(req, res) {
   throw new Error("Meu primeiro erro Sentry!");
 });
@@ -50,7 +67,7 @@ app.use("/api/payments", paymentsRouter);
 // Tratamento de rotas inexistentes
 app.use(notFound);
 
-// Configuração de erros do Sentry (Sintaxe da v8)
+// Configuração de erros do Sentry
 Sentry.setupExpressErrorHandler(app);
 
 // Seu tratamento de erros final
