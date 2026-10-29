@@ -22,8 +22,3 @@ jobs:
     - name: Instalar dependências
       working-directory: ./backend
       run: npm install
-
-    - name: Executar verificações ou testes
-      working-directory: ./backend
-      # Se ainda não tiver testes configurados no package.json, isto evita que a Action falhe:
-      run: npm test --if-present
