@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, User, Mail, Lock } from "lucide-react";
 import Logo from "../components/Logo";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://pixeltech-obxa.onrender.com/api";
 
 export default function RegisterScreen({ onBack, onGoToLogin, onRegistered }) {
   const [nome, setNome] = useState("");

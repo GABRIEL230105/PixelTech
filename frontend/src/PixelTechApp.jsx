@@ -8,7 +8,7 @@ import VerifyEmailScreen from "./components/VerifyEmailScreen";
 import ConfirmScreen from "./components/ConfirmScreen";
 import WhatsAppButton from "./components/WhatsAppButton";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://pixeltech-obxa.onrender.com";
 
 export default function PixelTechApp() {
   const [screen, setScreen] = useState("home"); // home | cart | login | register | verify | confirm

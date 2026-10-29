@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, MailCheck } from "lucide-react";
 import Logo from "./Logo";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://pixeltech-obxa.onrender.com/api";
 
 export default function VerifyEmailScreen({ email, onBack, onVerified, externalError, initialError }) {
   const [code, setCode] = useState("");

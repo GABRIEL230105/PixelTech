@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API_URL = "http://localhost:5000/api/leads";
+const API_URL = "https://pixeltech-obxa.onrender.com/api/leads";
 const WHATSAPP_NUMBER = "5592900000000"; // troque pelo número real, com código do país (55) + DDD
 
 export default function LeadForm() {
