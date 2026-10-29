@@ -4,18 +4,15 @@ import HomeScreen from "./components/HomeScreen";
 import CartScreen from "./components/CartScreen";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
-import VerifyEmailScreen from "./components/VerifyEmailScreen";
 import ConfirmScreen from "./components/ConfirmScreen";
 import WhatsAppButton from "./components/WhatsAppButton";
 
 const API_URL = "https://pixeltech-obxa.onrender.com/api";
 
 export default function PixelTechApp() {
-  const [screen, setScreen] = useState("home"); // home | cart | login | register | verify | confirm
+  const [screen, setScreen] = useState("home"); // home | cart | login | register | confirm
   const [cart, setCart] = useState([]);
-  const [pendingEmail, setPendingEmail] = useState("");
   const [paymentError, setPaymentError] = useState("");
-  const [verifyNotice, setVerifyNotice] = useState("");
 
   const addToCart = (product) => {
     setCart((prev) => {
@@ -57,8 +54,6 @@ export default function PixelTechApp() {
     }
 
     try {
-      // Só mandamos o id e a quantidade: nomes, preços e total são calculados no servidor,
-      // e o endereço de entrega é o que está salvo na conta
       const orderRes = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: {
@@ -128,24 +123,14 @@ export default function PixelTechApp() {
         <RegisterScreen
           onBack={() => setScreen("login")}
           onGoToLogin={() => setScreen("login")}
-          onRegistered={(email, sendFailed) => {
-            setPendingEmail(email);
-            setVerifyNotice(
-              sendFailed
-                ? "Sua conta foi criada, mas não conseguimos enviar o código agora. Toque em “Reenviar código”."
-                : ""
-            );
-            setScreen("verify");
+          onRegistered={() => {
+            // Conta criada com sucesso e token salvo: tenta ir direto para o pagamento ou home
+            if (cart.length > 0) {
+              goToPayment();
+            } else {
+              setScreen("home");
+            }
           }}
-        />
-      )}
-      {screen === "verify" && (
-        <VerifyEmailScreen
-          email={pendingEmail}
-          onBack={() => setScreen("register")}
-          onVerified={goToPayment}
-          externalError={paymentError}
-          initialError={verifyNotice}
         />
       )}
       {screen === "confirm" && (
