@@ -16,6 +16,9 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
+// Configuração necessária para o Render (corrige o erro do rate-limit)
+app.set('trust proxy', 1);
+
 // Inicialização do Sentry
 Sentry.init({
   dsn: "", 

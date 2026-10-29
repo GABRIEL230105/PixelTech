@@ -44,7 +44,7 @@ describe("inspectEnv", () => {
   });
 
   test.each([
-    ["localhost", "http://localhost:5000", /localhost/],
+    ["localhost", "https://pixeltech-obxa.onrender.com", /localhost/],
     ["127.0.0.1", "http://127.0.0.1:5000", /localhost/],
     ["barra no final", "https://x.ngrok-free.dev/", /barra/],
     ["sem http(s)", "x.ngrok-free.dev", /http:\/\/ ou https:\/\//],
