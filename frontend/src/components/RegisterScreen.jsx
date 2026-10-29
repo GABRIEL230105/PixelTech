@@ -38,28 +38,19 @@ export default function RegisterScreen({ onBack, onGoToLogin, onRegistered }) {
         return;
       }
 
+      // Guarda o token e os dados do utilizador diretamente
       localStorage.setItem("pixeltech_token", data.token);
       localStorage.setItem(
         "pixeltech_user",
         JSON.stringify({ name: data.name, email: data.email, address: data.address })
       );
 
-      // Envia o código de verificação por e-mail e avança pra tela de código.
-      // A conta já foi criada, então se o envio falhar a pessoa segue pra tela do código,
-      // que avisa e oferece "Reenviar código" (não faz sentido mostrar erro de cadastro).
-      let sendFailed = false;
-      try {
-        const otpRes = await fetch(`${API_URL}/otp/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        sendFailed = !otpRes.ok;
-      } catch (otpError) {
-        sendFailed = true;
+      // Avança diretamente para a aplicação (sem ecrã de OTP)
+      if (typeof onRegistered === "function") {
+        onRegistered(data);
+      } else {
+        window.location.reload(); // Recarrega ou redireciona se necessário
       }
-
-      onRegistered(email, sendFailed);
     } catch (err) {
       setError("Não foi possível conectar ao servidor.");
     } finally {
