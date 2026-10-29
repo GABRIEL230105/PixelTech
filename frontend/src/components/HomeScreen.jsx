@@ -1,19 +1,9 @@
-import { useState } from "react";
 import { ShoppingCart, Search, ArrowRight, SlidersHorizontal } from "lucide-react";
-import * as Icons from "lucide-react"; // Importa todos os ícones para uso dinâmico
 import Logo from "./Logo";
 import { PRODUCTS } from "../data/products";
 import { formatBRL } from "../utils/format";
 
 export default function HomeScreen({ cartCount, onOpenCart, onAdd }) {
-  const [activeCategory, setActiveCategory] = useState("Tudo");
-  const categories = ["Tudo", "Áudio", "Periféricos", "Energia", "Acessórios"];
-
-  // Filtra os produtos com base na categoria selecionada
-  const filteredProducts = activeCategory === "Tudo" 
-    ? PRODUCTS 
-    : PRODUCTS.filter(p => p.category === activeCategory);
-
   return (
     <div className="screen">
       <div className="home-header-bar">
@@ -47,30 +37,21 @@ export default function HomeScreen({ cartCount, onOpenCart, onAdd }) {
         </div>
 
         <div className="chip-row">
-          {categories.map((c) => (
-            <button 
-              key={c} 
-              className={`chip ${activeCategory === c ? "chip-active" : ""}`}
-              onClick={() => setActiveCategory(c)} // Muda a categoria ao clicar
-            >
+          {["Tudo", "Áudio", "Periféricos", "Energia", "Acessórios"].map((c, i) => (
+            <button key={c} className={`chip ${i === 0 ? "chip-active" : ""}`}>
               {c}
             </button>
           ))}
         </div>
 
         <div className="product-grid">
-          {filteredProducts.map((p) => {
-            // Converte a string do produto (ex: "Mouse") no componente do ícone correto
-            // Se o ícone não existir, usa o "Package" como padrão
-            const IconComponent = Icons[p.icon] || Icons.Package; 
-
+          {PRODUCTS.map((p) => {
+            const Icon = p.icon;
             return (
               <div key={p.id} className="product-card">
-                {/* Verifica se usa 'badge' (novo formato) ou 'tag' (formato antigo) */}
-                {(p.badge || p.tag) && <span className="product-tag">{p.badge || p.tag}</span>}
-                
+                {p.tag && <span className="product-tag">{p.tag}</span>}
                 <div className="product-thumb">
-                  <IconComponent size={40} strokeWidth={1.5} color="#1C1B22" />
+                  <Icon size={40} strokeWidth={1.5} color="#1C1B22" />
                 </div>
                 <div className="product-info">
                   <p className="product-category">{p.category}</p>
