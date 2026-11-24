@@ -5,12 +5,13 @@ import CartScreen from "./components/CartScreen";
 import LoginScreen from "./components/LoginScreen";
 import RegisterScreen from "./components/RegisterScreen";
 import ConfirmScreen from "./components/ConfirmScreen";
+import ConsultaScreen from "./components/ConsultaScreen";
 import WhatsAppButton from "./components/WhatsAppButton";
 
 const API_URL = "https://pixeltech-obxa.onrender.com/api";
 
 export default function PixelTechApp() {
-  const [screen, setScreen] = useState("home"); // home | cart | login | register | confirm
+  const [screen, setScreen] = useState("home"); // home | cart | login | register | confirm | consulta
   const [cart, setCart] = useState([]);
   const [paymentError, setPaymentError] = useState("");
 
@@ -28,7 +29,6 @@ export default function PixelTechApp() {
 
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
 
-  // Token vencido ou conta que não existe mais: descarta o login e volta pra tela de entrar
   const sessionExpired = (message) => {
     localStorage.removeItem("pixeltech_token");
     localStorage.removeItem("pixeltech_user");
@@ -36,7 +36,6 @@ export default function PixelTechApp() {
     setScreen("login");
   };
 
-  // Cria o pedido no banco e redireciona pro checkout do Mercado Pago
   const goToPayment = async () => {
     setPaymentError("");
     const token = localStorage.getItem("pixeltech_token");
@@ -47,7 +46,6 @@ export default function PixelTechApp() {
       return;
     }
 
-    // O carrinho fica só na memória da página: se ela foi recarregada, ele esvazia
     if (cart.length === 0) {
       setPaymentError("Seu carrinho está vazio. Volte à loja e adicione um produto antes de pagar.");
       return;
@@ -91,7 +89,6 @@ export default function PixelTechApp() {
         return;
       }
 
-      // Manda o usuário pro checkout do Mercado Pago
       window.location.href = pref.init_point;
     } catch (err) {
       setPaymentError("Não foi possível conectar ao servidor.");
@@ -101,7 +98,15 @@ export default function PixelTechApp() {
   return (
     <div className="site">
       {screen === "home" && (
-        <HomeScreen cartCount={cartCount} onOpenCart={() => setScreen("cart")} onAdd={addToCart} />
+        <HomeScreen
+          cartCount={cartCount}
+          onOpenCart={() => setScreen("cart")}
+          onOpenConsulta={() => setScreen("consulta")}
+          onAdd={addToCart}
+        />
+      )}
+      {screen === "consulta" && (
+        <ConsultaScreen apiUrl={API_URL} onBack={() => setScreen("home")} />
       )}
       {screen === "cart" && (
         <CartScreen
@@ -124,7 +129,6 @@ export default function PixelTechApp() {
           onBack={() => setScreen("login")}
           onGoToLogin={() => setScreen("login")}
           onRegistered={() => {
-            // Conta criada com sucesso e token salvo: tenta ir direto para o pagamento ou home
             if (cart.length > 0) {
               goToPayment();
             } else {

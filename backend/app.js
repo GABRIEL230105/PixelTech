@@ -3,6 +3,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const jwt = require("jsonwebtoken");
 
 const Sentry = require("@sentry/node");
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
@@ -14,14 +15,18 @@ const ordersRouter = require("./routes/orders");
 const paymentsRouter = require("./routes/payments");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 
+const Lead = require("./models/Lead");
+const Order = require("./models/Order");
+const User = require("./models/User");
+
 const app = express();
 
 // Configuração necessária para o Render (corrige o erro do rate-limit)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // Inicialização do Sentry
 Sentry.init({
-  dsn: "", 
+  dsn: "",
   integrations: [
     nodeProfilingIntegration(),
   ],
@@ -66,6 +71,34 @@ app.use("/api/auth", authRouter);
 app.use("/api/otp", otpRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/payments", paymentsRouter);
+
+// Área de consulta protegida por login JWT (RF20)
+app.get("/api/consulta", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    if (!token) {
+      return res.status(401).json({ error: "Faça login para acessar a área de consulta." });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET);
+
+    const [orders, leads, users] = await Promise.all([
+      Order.find().sort({ createdAt: -1 }).lean(),
+      Lead.find().sort({ createdAt: -1 }).lean(),
+      User.find().select("-password -senha -passwordHash").sort({ createdAt: -1 }).lean(),
+    ]);
+
+    res.json({ orders, leads, users });
+  } catch (err) {
+    if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Sessão expirada. Faça login novamente." });
+    }
+    console.error("Erro ao carregar área de consulta:", err);
+    res.status(500).json({ error: "Não foi possível carregar os registros." });
+  }
+});
 
 // Tratamento de rotas inexistentes
 app.use(notFound);

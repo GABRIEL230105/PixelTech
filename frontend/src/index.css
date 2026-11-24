@@ -1,12 +1,12 @@
 :root {
   --text: #6b6375;
   --text-h: #08060d;
-  --bg: #fff;
+  --bg: #f5f4f0; /* bege da PixelTech */
   --border: #e5e4e7;
   --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
+  --accent: #635bff;
+  --accent-bg: rgba(99, 91, 255, 0.1);
+  --accent-border: rgba(99, 91, 255, 0.5);
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
@@ -17,7 +17,7 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  color-scheme: light; /* loja é toda clara, evita o modo escuro quebrar o visual */
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -30,40 +30,25 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  background: var(--bg);
 }
 
+/* Libera o #root: ocupa a tela toda, sem faixas brancas nem bordas laterais */
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  border-inline: none;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
 }
 
 h1,
@@ -108,4 +93,627 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+/* =========================================================
+   PixelTech: layout e visual
+   (prefixo #root para ganhar das regras antigas, não importa
+   a ordem dos imports)
+   ========================================================= */
+
+#root {
+  --px-bg: #f5f4f0;
+  --px-ink: #1c1b22;
+  --px-body: #52525b;
+  --px-muted: #71717a;
+  --px-line: rgba(28, 27, 34, 0.08);
+  --px-line-strong: rgba(28, 27, 34, 0.16);
+  --px-accent: #635bff;
+  --px-accent-dark: #4f46e5;
+}
+
+#root .screen {
+  width: 100%;
+  min-height: 100svh;
+  background: var(--px-bg);
+  color: var(--px-ink);
+}
+
+/* ---------- Header ---------- */
+
+#root .home-header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+  background: rgba(245, 244, 240, 0.85);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--px-line);
+}
+
+#root .home-header-bar .home-header,
+#root .content-wrap {
+  width: 100%;
+  max-width: 1400px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+}
+
+#root .home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+}
+
+#root .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+#root .brand-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--px-ink);
+}
+
+#root .cart-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--px-ink);
+  border: 1px solid var(--px-line);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+#root .cart-btn:hover {
+  border-color: var(--px-line-strong);
+  box-shadow: 0 4px 14px rgba(28, 27, 34, 0.08);
+}
+
+#root .cart-btn .badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  background: var(--px-accent);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  border: 2px solid var(--px-bg);
+}
+
+/* ---------- Hero ---------- */
+
+#root .hero {
+  padding-top: clamp(2rem, 5vw, 3.75rem);
+  padding-bottom: 0;
+  text-align: center;
+}
+
+#root .hero-eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--px-muted);
+  letter-spacing: 0;
+}
+
+#root .hero-title {
+  max-width: 760px;
+  margin: 0 auto;
+  font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  color: var(--px-ink);
+  text-wrap: balance;
+}
+
+/* ---------- Busca (o elemento escuro, a assinatura da home) ---------- */
+
+#root .search-bar {
+  width: 100%;
+  max-width: 640px;
+  height: 54px;
+  margin: 1.75rem auto 1.5rem;
+  padding: 6px 6px 6px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--px-ink);
+  border-radius: 999px;
+  box-shadow: 0 10px 28px rgba(28, 27, 34, 0.18);
+  transition: box-shadow 0.2s ease;
+}
+#root .search-bar:focus-within {
+  box-shadow: 0 10px 28px rgba(28, 27, 34, 0.18), 0 0 0 3px rgba(99, 91, 255, 0.45);
+}
+
+#root .search-bar .search-icon {
+  position: static;
+  flex: none;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#root .search-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+}
+#root .search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#root .search-action,
+#root .search-filter {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+#root .search-action {
+  background: var(--px-accent);
+}
+#root .search-action:hover {
+  background: var(--px-accent-dark);
+}
+#root .search-filter {
+  background: rgba(255, 255, 255, 0.1);
+}
+#root .search-filter:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ---------- Categorias ---------- */
+
+#root .chip-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 2.25rem;
+}
+
+#root .chip {
+  padding: 0.55rem 1.15rem;
+  background: #fff;
+  color: var(--px-ink);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid var(--px-line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+#root .chip:hover {
+  border-color: var(--px-line-strong);
+}
+#root .chip.chip-active {
+  background: var(--px-ink);
+  color: #fff;
+  border-color: var(--px-ink);
+}
+
+/* ---------- Barra de resultados ---------- */
+
+#root .results-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--px-line);
+}
+#root .results-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--px-ink);
+}
+#root .results-count {
+  font-size: 0.85rem;
+  color: var(--px-muted);
+}
+
+/* ---------- Grid + cards ---------- */
+
+#root .product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: clamp(1rem, 2vw, 1.5rem);
+  padding-bottom: 6rem; /* respiro pro botão do WhatsApp */
+}
+
+#root .product-grid > .empty-state {
+  grid-column: 1 / -1;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--px-muted);
+}
+
+#root .product-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  background: #fff;
+  border: 1px solid var(--px-line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(28, 27, 34, 0.04);
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+#root .product-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--px-line-strong);
+  box-shadow: 0 16px 34px rgba(28, 27, 34, 0.1);
+}
+
+#root .product-thumb {
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-items: center;
+  background: var(--px-bg);
+  overflow: hidden;
+}
+#root .product-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+#root .product-card:hover .product-thumb img {
+  transform: scale(1.05);
+}
+
+#root .product-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: auto;
+  z-index: 2;
+  padding: 0.25rem 0.65rem;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--px-accent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(28, 27, 34, 0.12);
+}
+
+#root .product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.1rem 1.1rem;
+  text-align: left;
+}
+
+#root .product-category {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--px-muted);
+}
+
+#root .product-name {
+  margin: 0.2rem 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--px-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+#root .product-bottom {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+#root .product-price {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--px-ink);
+}
+
+#root .add-btn {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--px-accent);
+  color: #fff;
+  font-size: 1.3rem;
+  font-weight: 500;
+  line-height: 1;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+#root .add-btn:hover {
+  background: var(--px-accent-dark);
+  transform: scale(1.08);
+}
+#root .add-btn:active {
+  transform: scale(0.94);
+}
+
+/* ---------- Modal de detalhes ---------- */
+
+#root .pd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(28, 27, 34, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: pd-fade 0.2s ease;
+}
+
+#root .pd-modal {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  max-height: 92svh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+  text-align: left;
+  animation: pd-pop 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+#root .pd-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--px-ink);
+  border: 1px solid var(--px-line);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+#root .pd-close:hover {
+  background: #fff;
+  transform: scale(1.06);
+}
+
+#root .pd-media {
+  min-height: 380px;
+  display: grid;
+  place-items: center;
+  background: var(--px-bg);
+}
+#root .pd-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#root .pd-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  overflow-y: auto;
+}
+
+#root .pd-category {
+  align-self: flex-start;
+  margin-bottom: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(99, 91, 255, 0.1);
+  color: var(--px-accent-dark);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+#root .pd-title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.4rem, 3vw, 1.85rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--px-ink);
+}
+
+#root .pd-desc {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--px-body);
+}
+
+#root .pd-footer {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-top: 1px solid var(--px-line);
+}
+
+#root .pd-price-label {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--px-muted);
+}
+#root .pd-price {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--px-ink);
+}
+
+#root .pd-cta {
+  padding: 0.9rem 1.5rem;
+  background: var(--px-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+#root .pd-cta:hover {
+  background: var(--px-accent-dark);
+}
+#root .pd-cta:active {
+  transform: scale(0.98);
+}
+
+@keyframes pd-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pd-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 720px) {
+  #root .pd-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  #root .pd-modal {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    max-width: none;
+    max-height: 92svh;
+    overflow-y: auto;
+    border-radius: 24px 24px 0 0;
+    animation: pd-sheet 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  #root .pd-media {
+    min-height: 0;
+    height: 220px;
+  }
+  #root .pd-cta {
+    flex: 1;
+  }
+  @keyframes pd-sheet {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+}
+
+/* ---------- Acessibilidade ---------- */
+
+#root button:focus-visible,
+#root .product-card:focus-visible {
+  outline: 2px solid var(--px-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root *,
+  #root *::before,
+  #root *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- WhatsApp button ---- */
+.whatsapp-button {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  transition: transform 0.15s ease;
+}
+.whatsapp-button:hover {
+  transform: scale(1.08);
+}
+
+/* ---- WhatsApp CTA no formulário ---- */
+.form-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.btn-whatsapp {
+  background: #25d366;
+  color: white;
+  padding: 12px 24px;
+  font-size: 14px;
 }
