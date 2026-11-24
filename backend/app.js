@@ -18,42 +18,32 @@ const { notFound, errorHandler } = require("./middleware/errorHandler");
 const Lead = require("./models/Lead");
 const Order = require("./models/Order");
 const User = require("./models/User");
+const Product = require("./models/Product");
 
 const app = express();
 
-// Configuração necessária para o Render (corrige o erro do rate-limit)
 app.set("trust proxy", 1);
 
-// Inicialização do Sentry
 Sentry.init({
   dsn: "",
-  integrations: [
-    nodeProfilingIntegration(),
-  ],
+  integrations: [nodeProfilingIntegration()],
   tracesSampleRate: 1.0,
 });
 
 app.use(cors());
-
-// Proteção de cabeçalhos HTTP contra vulnerabilidades comuns
 app.use(helmet());
 
-// Prevenção de ataques de força bruta e DDoS (Rate Limiting)
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 150, // Limite de 150 pedidos por IP a cada 15 minutos
+  windowMs: 15 * 60 * 1000,
+  max: 150,
   message: { error: "Muitos pedidos realizados a partir deste IP. Tente novamente mais tarde." },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Aplica o limite de taxa a todas as rotas que começam por /api
 app.use("/api", apiLimiter);
-
-// Parse de JSON (mantido com limite de 100kb para evitar sobrecarga de memória)
 app.use(express.json({ limit: "100kb" }));
 
-// Pra conferir rápido se o servidor está no ar e conectado ao banco
 app.get("/api/health", (req, res) => {
   const dbConnected = mongoose.connection.readyState === 1;
   res.status(dbConnected ? 200 : 503).json({
@@ -72,25 +62,105 @@ app.use("/api/otp", otpRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/payments", paymentsRouter);
 
-// Área de consulta protegida por login JWT (RF20)
-app.get("/api/consulta", async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+// Função auxiliar para validar se o usuário logado é o administrador
+async function requireAdmin(req, res) {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    if (!token) {
-      return res.status(401).json({ error: "Faça login para acessar a área de consulta." });
+  if (!token) {
+    res.status(401).json({ error: "Faça login para acessar o painel administrativo." });
+    return null;
+  }
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.id || decoded._id || decoded.userId;
+  const currentUser = userId ? await User.findById(userId).lean() : null;
+  const userEmail = (currentUser?.email || decoded.email || "").toLowerCase();
+  const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+
+  if (!adminEmail || userEmail !== adminEmail) {
+    res.status(403).json({ error: "Acesso restrito ao administrador da loja." });
+    return null;
+  }
+
+  return currentUser || decoded;
+}
+
+// Lista produtos cadastrados pelo admin (público para a vitrine da loja)
+app.get("/api/products", async (req, res) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 }).lean();
+    res.json({ products });
+  } catch (err) {
+    console.error("Erro ao listar produtos:", err);
+    res.status(500).json({ error: "Erro ao carregar produtos." });
+  }
+});
+
+// Cadastra novo produto (apenas administrador)
+app.post("/api/products", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const { name, price, oldPrice, category, image, badge, description } = req.body;
+
+    if (!name || !category || !image || price === undefined || Number(price) <= 0) {
+      return res.status(400).json({ error: "Preencha nome, categoria, imagem e um preço válido." });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET);
+    const lastProduct = await Product.findOne().sort({ id: -1 }).lean();
+    const nextId = lastProduct && lastProduct.id >= 1001 ? lastProduct.id + 1 : 1001;
 
-    const [orders, leads, users] = await Promise.all([
-      Order.find().sort({ createdAt: -1 }).lean(),
+    const created = await Product.create({
+      id: nextId,
+      name: String(name).trim(),
+      price: Number(price),
+      oldPrice: oldPrice ? Number(oldPrice) : null,
+      category: String(category).trim(),
+      image: String(image).trim(),
+      badge: badge ? String(badge).trim() : "Novo",
+      description: description ? String(description).trim() : "",
+    });
+
+    res.status(201).json({ product: created });
+  } catch (err) {
+    if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Sessão expirada. Faça login novamente." });
+    }
+    console.error("Erro ao cadastrar produto:", err);
+    res.status(500).json({ error: "Não foi possível cadastrar o produto." });
+  }
+});
+
+// Remove produto cadastrado pelo admin (apenas administrador)
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    await Product.findOneAndDelete({ id: Number(req.params.id) });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Erro ao remover produto:", err);
+    res.status(500).json({ error: "Não foi possível remover o produto." });
+  }
+});
+
+// Área de consulta e administração protegida (RF20)
+app.get("/api/consulta", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const [orders, leads, users, products] = await Promise.all([
+      Order.find().populate("user", "name email").sort({ createdAt: -1 }).lean(),
       Lead.find().sort({ createdAt: -1 }).lean(),
       User.find().select("-password -senha -passwordHash").sort({ createdAt: -1 }).lean(),
+      Product.find().sort({ createdAt: -1 }).lean(),
     ]);
 
-    res.json({ orders, leads, users });
+    res.json({ orders, leads, users, products });
   } catch (err) {
     if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
       return res.status(401).json({ error: "Sessão expirada. Faça login novamente." });
@@ -100,13 +170,8 @@ app.get("/api/consulta", async (req, res) => {
   }
 });
 
-// Tratamento de rotas inexistentes
 app.use(notFound);
-
-// Configuração de erros do Sentry
 Sentry.setupExpressErrorHandler(app);
-
-// Seu tratamento de erros final
 app.use(errorHandler);
 
 module.exports = app;

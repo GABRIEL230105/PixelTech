@@ -1,27 +1,30 @@
 const { getProduct } = require("../data/catalog");
+const Product = require("../models/Product");
 
 const MAX_DISTINCT_ITEMS = 50;
 const MAX_QTY_PER_ITEM = 99;
 
-// Recebe o que o navegador mandou ([{ productId, qty }, ...]) e devolve os itens
-// e o total calculados com os preços do catálogo do servidor.
-// Só lê productId e qty: nome, preço e total enviados pelo cliente são ignorados.
-//
-// Retorna { items, total } ou { error } com uma mensagem pra mostrar ao usuário.
-function buildOrderItems(rawItems) {
+async function findAnyProduct(productId) {
+  const staticProduct = getProduct(productId);
+  if (staticProduct) return staticProduct;
+
+  const dbProduct = await Product.findOne({ id: productId }).lean();
+  return dbProduct || null;
+}
+
+async function buildOrderItems(rawItems) {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     return { error: "O pedido precisa ter pelo menos um item." };
   }
 
-  // Junta linhas repetidas do mesmo produto somando as quantidades
   const quantities = new Map();
 
   for (const raw of rawItems) {
     const productId = raw && raw.productId;
     const qty = raw && raw.qty;
 
-    if (typeof productId !== "number" || !getProduct(productId)) {
-      return { error: `Produto inexistente: ${String(productId).slice(0, 30)}.` };
+    if (typeof productId !== "number") {
+      return { error: `Produto inválido: ${String(productId).slice(0, 30)}.` };
     }
 
     if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY_PER_ITEM) {
@@ -43,9 +46,12 @@ function buildOrderItems(rawItems) {
       return { error: `Quantidade total acima do limite para o produto ${productId} (máximo ${MAX_QTY_PER_ITEM}).` };
     }
 
-    const product = getProduct(productId);
+    const product = await findAnyProduct(productId);
+    if (!product) {
+      return { error: `Produto inexistente: ${productId}.` };
+    }
+
     items.push({ productId, name: product.name, price: product.price, qty });
-    // Conta em centavos pra não acumular erro de arredondamento (ex: 3 x 129,90)
     totalCents += Math.round(product.price * 100) * qty;
   }
 

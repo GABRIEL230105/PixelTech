@@ -24,7 +24,7 @@ module.exports = {
   // O navegador manda só { items: [{ productId, qty }] }. Nomes, preços e total são
   // calculados aqui com o catálogo do servidor, e o endereço é o salvo na conta.
   async create(req, res) {
-    const built = buildOrderItems(req.body.items);
+    const built = await buildOrderItems(req.body.items);
     if (built.error) {
       return res.status(400).json({ error: built.error });
     }

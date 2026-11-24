@@ -1,18 +1,69 @@
 import { useEffect, useState } from "react";
-import { ShoppingCart, Search, ArrowRight, SlidersHorizontal, X, ClipboardList } from "lucide-react";
+import {
+  ShoppingCart,
+  Search,
+  ArrowRight,
+  SlidersHorizontal,
+  X,
+  ClipboardList,
+  Package,
+} from "lucide-react";
 import Logo from "./Logo";
 import { PRODUCTS } from "../data/products";
 import { formatBRL } from "../utils/format";
 
-export default function HomeScreen({ cartCount, onOpenCart, onOpenConsulta, onAdd }) {
+const DEFAULT_API_URL = "https://pixeltech-obxa.onrender.com/api";
+
+export default function HomeScreen({
+  cartCount,
+  onOpenCart,
+  onOpenConsulta,
+  onAdd,
+  apiUrl = DEFAULT_API_URL,
+}) {
   const [activeCategory, setActiveCategory] = useState("Tudo");
   const [searchQuery, setSearchQuery] = useState("");
   const [failedImages, setFailedImages] = useState({});
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [extraProducts, setExtraProducts] = useState([]);
 
   const categories = ["Tudo", "Áudio", "Periféricos", "Energia", "Acessórios"];
 
-  const filteredProducts = PRODUCTS.filter((p) => {
+  // Carrega os produtos cadastrados pelo administrador no MongoDB
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDynamicProducts() {
+      try {
+        const res = await fetch(`${apiUrl}/products`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted && Array.isArray(data.products)) {
+          const normalized = data.products.map((item) => ({
+            ...item,
+            icon: Package,
+          }));
+          setExtraProducts(normalized);
+        }
+      } catch {
+        // Mantém os 80 produtos padrão caso o servidor esteja iniciando
+      }
+    }
+
+    loadDynamicProducts();
+    return () => {
+      isMounted = false;
+    };
+  }, [apiUrl]);
+
+  // Junta os produtos novos (no topo) com os 80 produtos padrão sem duplicar IDs
+  const extraIds = new Set(extraProducts.map((item) => item.id));
+  const allProducts = [
+    ...extraProducts,
+    ...PRODUCTS.filter((item) => !extraIds.has(item.id)),
+  ];
+
+  const filteredProducts = allProducts.filter((p) => {
     const matchCategory = activeCategory === "Tudo" || p.category === activeCategory;
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
@@ -59,7 +110,7 @@ export default function HomeScreen({ cartCount, onOpenCart, onOpenConsulta, onAd
           <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
             <button
               onClick={() => onOpenConsulta && onOpenConsulta()}
-              title="Área de Consulta (Pedidos, Leads e Clientes)"
+              title="Painel Administrativo (Pedidos, Produtos, Leads e Clientes)"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -71,11 +122,11 @@ export default function HomeScreen({ cartCount, onOpenCart, onOpenConsulta, onAd
                 fontSize: "0.82rem",
                 fontWeight: 600,
                 color: "#1C1B22",
-                cursor: "pointer"
+                cursor: "pointer",
               }}
             >
               <ClipboardList size={16} />
-              <span>Consulta</span>
+              <span>Administrador</span>
             </button>
             <button className="icon-btn cart-btn" onClick={onOpenCart} aria-label="Carrinho">
               <ShoppingCart size={20} />
