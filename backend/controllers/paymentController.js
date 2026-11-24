@@ -107,8 +107,13 @@ module.exports = {
         return res.status(400).json({ error: "Esse pedido não está mais aguardando pagamento." });
       }
 
-      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
-      const backendUrl = (process.env.BACKEND_URL || "").replace(/\/$/, "");
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173")
+        .trim()
+        .replace(/\/$/, "");
+      const backendUrl = (process.env.BACKEND_URL || "")
+        .trim()
+        .replace(/\/$/, "");
+
       const preference = new Preference(mpClient);
 
       const preferenceBody = {
@@ -124,10 +129,14 @@ module.exports = {
           failure: `${frontendUrl}/`,
           pending: `${frontendUrl}/`,
         },
-        auto_return: "approved",
       };
 
-      if (backendUrl) {
+      // O Mercado Pago só aceita auto_return e notification_url com HTTPS público
+      if (frontendUrl.startsWith("https://")) {
+        preferenceBody.auto_return = "approved";
+      }
+
+      if (backendUrl.startsWith("https://")) {
         preferenceBody.notification_url = `${backendUrl}/api/payments/webhook`;
       }
 
