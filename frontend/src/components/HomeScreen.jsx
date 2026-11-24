@@ -13,6 +13,7 @@ import { PRODUCTS } from "../data/products";
 import { formatBRL } from "../utils/format";
 
 const DEFAULT_API_URL = "https://pixeltech-obxa.onrender.com/api";
+const STATIC_ICON_BY_ID = new Map(PRODUCTS.map((item) => [item.id, item.icon]));
 
 export default function HomeScreen({
   cartCount,
@@ -25,11 +26,12 @@ export default function HomeScreen({
   const [searchQuery, setSearchQuery] = useState("");
   const [failedImages, setFailedImages] = useState({});
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [extraProducts, setExtraProducts] = useState([]);
+  const [dbProducts, setDbProducts] = useState([]);
+  const [usingDb, setUsingDb] = useState(false);
 
   const categories = ["Tudo", "Áudio", "Periféricos", "Energia", "Acessórios"];
 
-  // Carrega os produtos cadastrados pelo administrador no MongoDB
+  // Carrega o catálogo completo do MongoDB (os 80 iniciais + novos cadastrados pelo admin)
   useEffect(() => {
     let isMounted = true;
 
@@ -38,15 +40,16 @@ export default function HomeScreen({
         const res = await fetch(`${apiUrl}/products`);
         if (!res.ok) return;
         const data = await res.json();
-        if (isMounted && Array.isArray(data.products)) {
+        if (isMounted && Array.isArray(data.products) && data.products.length > 0) {
           const normalized = data.products.map((item) => ({
             ...item,
-            icon: Package,
+            icon: STATIC_ICON_BY_ID.get(item.id) || Package,
           }));
-          setExtraProducts(normalized);
+          setDbProducts(normalized);
+          setUsingDb(true);
         }
       } catch {
-        // Mantém os 80 produtos padrão caso o servidor esteja iniciando
+        // Mantém os 80 produtos estáticos como fallback enquanto o servidor inicia
       }
     }
 
@@ -56,12 +59,7 @@ export default function HomeScreen({
     };
   }, [apiUrl]);
 
-  // Junta os produtos novos (no topo) com os 80 produtos padrão sem duplicar IDs
-  const extraIds = new Set(extraProducts.map((item) => item.id));
-  const allProducts = [
-    ...extraProducts,
-    ...PRODUCTS.filter((item) => !extraIds.has(item.id)),
-  ];
+  const allProducts = usingDb ? dbProducts : PRODUCTS;
 
   const filteredProducts = allProducts.filter((p) => {
     const matchCategory = activeCategory === "Tudo" || p.category === activeCategory;

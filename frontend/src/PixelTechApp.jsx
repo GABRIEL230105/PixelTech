@@ -8,7 +8,7 @@ import ConfirmScreen from "./components/ConfirmScreen";
 import ConsultaScreen from "./components/ConsultaScreen";
 import WhatsAppButton from "./components/WhatsAppButton";
 
-const API_URL = "https://pixeltech-obxa.onrender.com/api";
+const API_URL = import.meta.env.VITE_API_URL || "https://pixeltech-obxa.onrender.com/api";
 
 export default function PixelTechApp() {
   const [screen, setScreen] = useState("home"); // home | cart | login | register | confirm | consulta
@@ -99,6 +99,7 @@ export default function PixelTechApp() {
     <div className="site">
       {screen === "home" && (
         <HomeScreen
+          apiUrl={API_URL}
           cartCount={cartCount}
           onOpenCart={() => setScreen("cart")}
           onOpenConsulta={() => setScreen("consulta")}

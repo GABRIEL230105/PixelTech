@@ -10,6 +10,9 @@ import {
   ShoppingBag,
   PlusCircle,
   Trash2,
+  Pencil,
+  Save,
+  X,
 } from "lucide-react";
 import Logo from "./Logo";
 import { formatBRL } from "../utils/format";
@@ -32,7 +35,8 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Estados do formulário de novo produto
+  // Estados do formulário de produto (criação e edição)
+  const [editingProductId, setEditingProductId] = useState(null);
   const [prodName, setProdName] = useState("");
   const [prodCategory, setProdCategory] = useState("Áudio");
   const [prodPrice, setProdPrice] = useState("");
@@ -42,6 +46,29 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
   const [prodLoading, setProdLoading] = useState(false);
   const [prodMessage, setProdMessage] = useState({ type: "", text: "" });
 
+  const handleCancelEdit = () => {
+    setEditingProductId(null);
+    setProdName("");
+    setProdCategory("Áudio");
+    setProdPrice("");
+    setProdTag("Novo");
+    setProdImage("");
+    setProdDescription("");
+  };
+
+  const handleStartEdit = (prod) => {
+    const targetId = prod.id ?? prod._id;
+    setEditingProductId(targetId);
+    setProdName(prod.name || "");
+    setProdCategory(prod.category || "Áudio");
+    setProdPrice(prod.price !== undefined ? String(prod.price) : "");
+    setProdTag(prod.badge ?? "");
+    setProdImage(prod.image || "");
+    setProdDescription(prod.description || "");
+    setProdMessage({ type: "", text: "" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("pixeltech_token");
     localStorage.removeItem("pixeltech_user");
@@ -50,6 +77,7 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
     setLeads([]);
     setUsers([]);
     setProducts([]);
+    handleCancelEdit();
   };
 
   const handleLogin = async (e) => {
@@ -127,14 +155,19 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
     }
   }, [token, apiUrl]);
 
-  const handleCreateProduct = async (e) => {
+  const handleSaveProduct = async (e) => {
     e.preventDefault();
     setProdMessage({ type: "", text: "" });
     setProdLoading(true);
 
+    const isEditing = editingProductId !== null;
+    const endpoint = isEditing
+      ? `${apiUrl}/products/${editingProductId}`
+      : `${apiUrl}/products`;
+
     try {
-      const res = await fetch(`${apiUrl}/products`, {
-        method: "POST",
+      const res = await fetch(endpoint, {
+        method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -152,15 +185,18 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.error || "Erro ao cadastrar produto.");
+        throw new Error(
+          data.error || (isEditing ? "Erro ao atualizar produto." : "Erro ao cadastrar produto.")
+        );
       }
 
-      setProdName("");
-      setProdPrice("");
-      setProdImage("");
-      setProdDescription("");
-      setProdTag("Novo");
-      setProdMessage({ type: "success", text: "Produto cadastrado com sucesso na loja!" });
+      handleCancelEdit();
+      setProdMessage({
+        type: "success",
+        text: isEditing
+          ? "Produto atualizado com sucesso!"
+          : "Produto cadastrado com sucesso na loja!",
+      });
       await carregarDados(token);
     } catch (err) {
       setProdMessage({ type: "error", text: err.message });
@@ -185,7 +221,13 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
         throw new Error(data.error || "Não foi possível remover o produto.");
       }
 
-      setProducts((prev) => prev.filter((item) => item.id !== productId));
+      if (editingProductId === productId) {
+        handleCancelEdit();
+      }
+
+      setProducts((prev) =>
+        prev.filter((item) => (item.id ?? item._id) !== productId)
+      );
     } catch (err) {
       alert(err.message);
     }
@@ -470,24 +512,29 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
             </div>
           )}
 
-          {/* ABA DE PRODUTOS (CADASTRO + LISTAGEM) */}
+          {/* ABA DE PRODUTOS (CADASTRO + EDIÇÃO + LISTAGEM) */}
           {!loading && !error && tab === "produtos" && (
             <div style={{ display: "grid", gap: "1.5rem" }}>
-              {/* Formulário para adicionar novo produto */}
+              {/* Formulário para adicionar ou editar produto */}
               <form
-                onSubmit={handleCreateProduct}
+                onSubmit={handleSaveProduct}
                 style={{
                   backgroundColor: "#FFFFFF",
                   borderRadius: "16px",
                   padding: "1.5rem",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.04)",
+                  border: editingProductId !== null ? "2px solid #635BFF" : "none",
                 }}
               >
                 <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1C1B22", marginBottom: "0.25rem" }}>
-                  Adicionar Novo Produto à Loja
+                  {editingProductId !== null
+                    ? `Editar Produto #${editingProductId}`
+                    : "Adicionar Novo Produto à Loja"}
                 </h3>
                 <p style={{ fontSize: "0.85rem", color: "#71717A", marginBottom: "1.25rem" }}>
-                  Os 80 produtos padrão continuam ativos. Novos itens cadastrados aqui aparecem automaticamente na vitrine.
+                  {editingProductId !== null
+                    ? "Altere os campos desejados abaixo e clique em Salvar Alterações."
+                    : "Os 80 produtos padrão continuam ativos. Novos itens cadastrados aqui aparecem automaticamente na vitrine."}
                 </p>
 
                 <div
@@ -600,27 +647,55 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
                   </p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={prodLoading}
-                  style={{
-                    marginTop: "1rem",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.45rem",
-                    backgroundColor: "#635BFF",
-                    color: "#FFFFFF",
-                    border: "none",
-                    borderRadius: "999px",
-                    padding: "0.75rem 1.35rem",
-                    fontSize: "0.9rem",
-                    fontWeight: 600,
-                    cursor: prodLoading ? "not-allowed" : "pointer",
-                  }}
-                >
-                  <PlusCircle size={17} />
-                  {prodLoading ? "Salvando..." : "Publicar Produto"}
-                </button>
+                <div style={{ marginTop: "1rem", display: "flex", gap: "0.65rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <button
+                    type="submit"
+                    disabled={prodLoading}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.45rem",
+                      backgroundColor: "#635BFF",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: "999px",
+                      padding: "0.75rem 1.35rem",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                      cursor: prodLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {editingProductId !== null ? <Save size={17} /> : <PlusCircle size={17} />}
+                    {prodLoading
+                      ? "Salvando..."
+                      : editingProductId !== null
+                      ? "Salvar Alterações"
+                      : "Publicar Produto"}
+                  </button>
+
+                  {editingProductId !== null && (
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        backgroundColor: "#F4F4F5",
+                        color: "#1C1B22",
+                        border: "1px solid #E4E4E7",
+                        borderRadius: "999px",
+                        padding: "0.75rem 1.2rem",
+                        fontSize: "0.9rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={16} />
+                      Cancelar
+                    </button>
+                  )}
+                </div>
               </form>
 
               {/* Lista de produtos cadastrados pelo admin */}
@@ -641,47 +716,76 @@ export default function ConsultaScreen({ onBack, apiUrl = DEFAULT_API_URL }) {
                         <th style={{ padding: "0.75rem" }}>Produto</th>
                         <th style={{ padding: "0.75rem" }}>Categoria</th>
                         <th style={{ padding: "0.75rem" }}>Preço</th>
-                        <th style={{ padding: "0.75rem" }}>Ação</th>
+                        <th style={{ padding: "0.75rem" }}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {products.map((prod) => (
-                        <tr key={prod.id} style={{ borderBottom: "1px solid #F4F4F5" }}>
-                          <td style={{ padding: "0.75rem" }}>
-                            <img
-                              src={prod.image}
-                              alt={prod.name}
-                              style={{ width: "44px", height: "44px", objectFit: "cover", borderRadius: "8px" }}
-                            />
-                          </td>
-                          <td style={{ padding: "0.75rem", fontFamily: "monospace" }}>#{prod.id}</td>
-                          <td style={{ padding: "0.75rem", fontWeight: 600 }}>{prod.name}</td>
-                          <td style={{ padding: "0.75rem" }}>{prod.category}</td>
-                          <td style={{ padding: "0.75rem", fontWeight: 600 }}>{formatBRL(prod.price)}</td>
-                          <td style={{ padding: "0.75rem" }}>
-                            <button
-                              onClick={() => handleDeleteProduct(prod.id, prod.name)}
-                              title="Remover produto"
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "0.3rem",
-                                backgroundColor: "#FEE2E2",
-                                color: "#991B1B",
-                                border: "none",
-                                borderRadius: "8px",
-                                padding: "0.4rem 0.65rem",
-                                fontSize: "0.8rem",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              <Trash2 size={14} />
-                              Excluir
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {products.map((prod) => {
+                        const prodId = prod.id ?? prod._id;
+                        return (
+                          <tr key={prodId} style={{ borderBottom: "1px solid #F4F4F5" }}>
+                            <td style={{ padding: "0.75rem" }}>
+                              <img
+                                src={prod.image}
+                                alt={prod.name}
+                                style={{ width: "44px", height: "44px", objectFit: "cover", borderRadius: "8px" }}
+                              />
+                            </td>
+                            <td style={{ padding: "0.75rem", fontFamily: "monospace" }}>
+                              #{prod.id ?? String(prod._id).slice(-6).toUpperCase()}
+                            </td>
+                            <td style={{ padding: "0.75rem", fontWeight: 600 }}>{prod.name}</td>
+                            <td style={{ padding: "0.75rem" }}>{prod.category}</td>
+                            <td style={{ padding: "0.75rem", fontWeight: 600 }}>{formatBRL(prod.price)}</td>
+                            <td style={{ padding: "0.75rem" }}>
+                              <div style={{ display: "flex", gap: "0.45rem", alignItems: "center" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEdit(prod)}
+                                  title="Editar produto"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "0.3rem",
+                                    backgroundColor: "#EEF2FF",
+                                    color: "#4F46E5",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    padding: "0.4rem 0.65rem",
+                                    fontSize: "0.8rem",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <Pencil size={14} />
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProduct(prodId, prod.name)}
+                                  title="Remover produto"
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "0.3rem",
+                                    backgroundColor: "#FEE2E2",
+                                    color: "#991B1B",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    padding: "0.4rem 0.65rem",
+                                    fontSize: "0.8rem",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                  Excluir
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}

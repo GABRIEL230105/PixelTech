@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
+const INITIAL_PRODUCTS = require("./seed/initialProducts");
 
 const Sentry = require("@sentry/node");
 const { nodeProfilingIntegration } = require("@sentry/profiling-node");
@@ -86,10 +87,50 @@ async function requireAdmin(req, res) {
   return currentUser || decoded;
 }
 
-// Lista produtos cadastrados pelo admin (público para a vitrine da loja)
+// Importa automaticamente os 80 produtos iniciais se a coleção estiver vazia
+async function seedInitialProductsIfEmpty() {
+  try {
+    if (mongoose.connection.readyState !== 1) return;
+    const count = await Product.countDocuments();
+    if (count === 0) {
+      await Product.insertMany(INITIAL_PRODUCTS);
+      console.log("[seed] 80 produtos iniciais importados para o MongoDB.");
+    }
+  } catch (err) {
+    console.error("[seed] Erro ao importar produtos iniciais:", err.message);
+  }
+}
+
+mongoose.connection.once("open", seedInitialProductsIfEmpty);
+if (mongoose.connection.readyState === 1) {
+  seedInitialProductsIfEmpty();
+}
+
+// Rota administrativa opcional para importar os 80 produtos padrão sem duplicar
+app.post("/api/products/seed", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const existing = await Product.find({}, { id: 1 }).lean();
+    const existingIds = new Set(existing.map((p) => p.id));
+    const missing = INITIAL_PRODUCTS.filter((p) => !existingIds.has(p.id));
+
+    if (missing.length > 0) {
+      await Product.insertMany(missing);
+    }
+
+    res.json({ imported: missing.length, total: existing.length + missing.length });
+  } catch (err) {
+    console.error("Erro ao importar catálogo padrão:", err);
+    res.status(500).json({ error: "Não foi possível importar os produtos padrão." });
+  }
+});
+
+// Lista produtos cadastrados no banco (público para a vitrine da loja)
 app.get("/api/products", async (req, res) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 }).lean();
+    const products = await Product.find().sort({ createdAt: -1, id: 1 }).lean();
     res.json({ products });
   } catch (err) {
     console.error("Erro ao listar produtos:", err);
@@ -133,15 +174,72 @@ app.post("/api/products", async (req, res) => {
   }
 });
 
-// Remove produto cadastrado pelo admin (apenas administrador)
+// Edita produto cadastrado no banco (apenas administrador)
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const { name, price, oldPrice, category, image, badge, description } = req.body;
+
+    if (!name || !category || !image || price === undefined || Number(price) <= 0) {
+      return res.status(400).json({ error: "Preencha nome, categoria, imagem e um preço válido." });
+    }
+
+    const rawId = req.params.id;
+    const filter = mongoose.isValidObjectId(rawId)
+      ? { _id: rawId }
+      : { id: Number(rawId) };
+
+    const updated = await Product.findOneAndUpdate(
+      filter,
+      {
+        name: String(name).trim(),
+        price: Number(price),
+        oldPrice: oldPrice ? Number(oldPrice) : null,
+        category: String(category).trim(),
+        image: String(image).trim(),
+        badge: badge !== undefined ? String(badge).trim() : "",
+        description: description !== undefined ? String(description).trim() : "",
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Produto não encontrado." });
+    }
+
+    res.json({ product: updated });
+  } catch (err) {
+    if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Sessão expirada. Faça login novamente." });
+    }
+    console.error("Erro ao editar produto:", err);
+    res.status(500).json({ error: "Não foi possível atualizar o produto." });
+  }
+});
+
+// Remove produto cadastrado no banco (apenas administrador)
 app.delete("/api/products/:id", async (req, res) => {
   try {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
 
-    await Product.findOneAndDelete({ id: Number(req.params.id) });
-    res.json({ ok: true });
+    const rawId = req.params.id;
+    const filter = mongoose.isValidObjectId(rawId)
+      ? { _id: rawId }
+      : { id: Number(rawId) };
+
+    const deleted = await Product.findOneAndDelete(filter);
+    if (!deleted) {
+      return res.status(404).json({ error: "Produto não encontrado." });
+    }
+
+    res.json({ ok: true, message: "Produto removido com sucesso." });
   } catch (err) {
+    if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Sessão expirada. Faça login novamente." });
+    }
     console.error("Erro ao remover produto:", err);
     res.status(500).json({ error: "Não foi possível remover o produto." });
   }
@@ -157,7 +255,7 @@ app.get("/api/consulta", async (req, res) => {
       Order.find().populate("user", "name email").sort({ createdAt: -1 }).lean(),
       Lead.find().sort({ createdAt: -1 }).lean(),
       User.find().select("-password -senha -passwordHash").sort({ createdAt: -1 }).lean(),
-      Product.find().sort({ createdAt: -1 }).lean(),
+      Product.find().sort({ createdAt: -1, id: 1 }).lean(),
     ]);
 
     res.json({ orders, leads, users, products });

@@ -1,0 +1,2 @@
+import "node:module";
+export {};
